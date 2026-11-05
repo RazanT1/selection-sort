@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Box A Selection Sort</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;300;400;600;700&family=IBM+Plex+Mono:wght@400;600&family=Cormorant+Garamond:ital,wght@1,300;1,400&display=swap">
+<style>
+/* Layout: night-blue glass. A full opening scene under a glowing horizon, then the working bench, then the evidence. Deliberately single dark look. */
+:root{
+  color-scheme:dark;
+  --bg:#040817; --bg2:#08122b; --glass:rgba(140,170,255,.06); --glass2:rgba(140,170,255,.1);
+  --edge:rgba(170,195,255,.14); --ink:#eaf0ff; --muted:#8c9abf; --blue:#4f8cff; --sky:#9fd4ff;
+  --barA:#22396e; --barB:#2f52a0; --sorted:#141f40; --good:#5fe0b4;
+  --sans:"Plus Jakarta Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --sign:"Cormorant Garamond",Georgia,"Times New Roman",serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(80% 50% at 50% 110%,rgba(40,90,220,.22),transparent 70%),radial-gradient(40% 30% at 85% 40%,rgba(80,140,255,.08),transparent 70%)}
+.gut{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.inner{max-width:1080px;margin:0 auto;position:relative;z-index:1}
+
+/* ---------- opening scene ---------- */
+.hero{position:relative;min-height:min(92vh,860px);display:grid;place-items:center;overflow:hidden;padding-block:72px 120px;text-align:center}
+.hero .inner{display:grid;justify-items:center;gap:22px}
+#heroBars{position:absolute;left:0;right:0;bottom:0;width:100%;height:38%;opacity:.35;pointer-events:none;
+  -webkit-mask-image:linear-gradient(to top,#000 10%,transparent);mask-image:linear-gradient(to top,#000 10%,transparent)}
+.arc{position:absolute;left:50%;top:6%;width:min(1100px,140vw);aspect-ratio:2/1;max-width:none;transform:translateX(-50%);pointer-events:none}
+.arc::before{content:"";position:absolute;inset:0;border-radius:50% 50% 0 0/100% 100% 0 0;
+  border-top:2px solid rgba(190,220,255,.95);
+  box-shadow:0 -10px 40px rgba(110,170,255,.55),inset 0 14px 60px rgba(90,150,255,.45);
+  -webkit-mask-image:linear-gradient(to bottom,#000 30%,transparent 62%);mask-image:linear-gradient(to bottom,#000 30%,transparent 62%)}
+.arc::after{content:"";position:absolute;left:50%;top:-40px;width:42%;height:120px;transform:translateX(-50%);
+  background:radial-gradient(closest-side,rgba(200,230,255,.85),rgba(80,140,255,.25) 60%,transparent);filter:blur(10px)}
+.rays{position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(90deg,transparent 0 90px,rgba(140,180,255,.05) 90px 91px);
+  -webkit-mask-image:radial-gradient(60% 60% at 50% 20%,#000,transparent);mask-image:radial-gradient(60% 60% at 50% 20%,#000,transparent)}
+.pill{display:inline-flex;align-items:center;gap:8px;font-size:13px;padding:7px 14px;border-radius:999px;background:var(--glass2);border:1px solid var(--edge);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.pill .spark{width:8px;height:8px;border-radius:50%;background:var(--sky);box-shadow:0 0 10px var(--sky)}
+h1{margin:0;font-weight:300;font-size:clamp(40px,8vw,88px);line-height:1;letter-spacing:-.03em;text-wrap:balance}
+h1 .grad{display:block;font-weight:700;background:linear-gradient(90deg,#ffffff 0%,#bcd8ff 45%,#5b93ff 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{max-width:54ch;margin:0;color:var(--muted);font-size:16px}
+.cta{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
+.btn{font-family:var(--sans);font-weight:600;font-size:14px;border-radius:12px;padding:11px 20px;cursor:pointer;border:1px solid var(--edge);background:var(--glass);color:var(--ink);text-decoration:none;transition:transform .2s,box-shadow .2s,background .2s}
+.btn:hover{transform:translateY(-2px);background:var(--glass2)}
+.btn.lit{background:linear-gradient(180deg,#e9f2ff,#9fc0ff);color:#071233;border-color:transparent;box-shadow:0 8px 30px -6px rgba(110,160,255,.7)}
+.btn:disabled{opacity:.35;cursor:default;transform:none}
+.btn:focus-visible,.chip:focus-visible,.seg:focus-visible,input:focus-visible{outline:2px solid var(--sky);outline-offset:3px}
+.floaters{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-top:10px}
+.fcard{position:relative;padding:14px 18px;min-width:150px;border-radius:16px;background:var(--glass);border:1px solid var(--edge);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);text-align:left;box-shadow:0 20px 40px -20px rgba(0,0,0,.6)}
+.fcard .k{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.fcard .v{font-weight:600;font-size:22px;font-variant-numeric:tabular-nums}
+@media (max-width:520px){.fcard{min-width:0;flex:1 1 40%}}
+.scrollcue{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);display:grid;justify-items:center;gap:6px;font-size:12px;color:var(--muted);text-decoration:none}
+.scrollcue i{width:22px;height:34px;border:1.5px solid var(--edge);border-radius:12px;position:relative}
+.scrollcue i::after{content:"";position:absolute;left:50%;top:7px;width:3px;height:7px;border-radius:2px;background:var(--sky);transform:translateX(-50%);animation:wheel 1.8s infinite}
+@keyframes wheel{60%{transform:translate(-50%,10px);opacity:0}}
+
+/* opening motion: the horizon rises, then the words */
+/* opening intro: a glowing orb gathers light, then bursts open into the page */
+.intro{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:var(--bg);animation:introOut .7s ease 2.1s forwards;cursor:pointer}
+.orb{width:130px;height:130px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#ffffff 0%,#bfe0ff 22%,#4f8cff 55%,rgba(30,60,160,.2) 75%,transparent 76%);box-shadow:0 0 60px 10px rgba(110,170,255,.55),0 0 160px 40px rgba(60,120,255,.25);animation:orbIn 1s cubic-bezier(.2,.8,.2,1) both,orbPulse 1.2s ease-in-out .9s,orbOpen .8s cubic-bezier(.7,0,.3,1) 1.8s forwards}
+.introname{position:absolute;top:calc(50% + 100px);font-family:var(--mono);font-size:12px;letter-spacing:.3em;text-transform:uppercase;color:var(--sky);animation:up .8s ease .5s both,fadeOut .4s ease 1.7s forwards}
+@keyframes orbIn{from{transform:scale(.1);opacity:0}}
+@keyframes orbPulse{50%{transform:scale(1.12);box-shadow:0 0 90px 20px rgba(140,190,255,.7),0 0 220px 60px rgba(60,120,255,.35)}}
+@keyframes orbOpen{to{transform:scale(18);opacity:0}}
+@keyframes introOut{to{opacity:0;visibility:hidden;pointer-events:none}}
+@keyframes fadeOut{to{opacity:0}}
+.hero .arc{animation:rise 1.6s cubic-bezier(.2,.8,.2,1) 2s both}
+.hero .pill,.hero h1,.hero .sub,.hero .cta,.fcard{animation:up .9s cubic-bezier(.2,.8,.2,1) both}
+.hero .pill{animation-delay:2.4s}.hero h1{animation-delay:2.55s}.hero .sub{animation-delay:2.75s}.hero .cta{animation-delay:2.9s}
+.fcard{animation:up 1s cubic-bezier(.2,.8,.2,1) both,float 7s ease-in-out infinite}
+.f1{animation-delay:3.05s,4s}.f2{animation-delay:3.2s,4s}.f3{animation-delay:3.35s,4s}
+@keyframes rise{from{transform:translate(-50%,35%) scale(.85);opacity:.2}}
+@keyframes up{from{transform:translateY(24px);opacity:0;filter:blur(6px)}}
+@keyframes float{50%{translate:0 -10px}}
+
+/* ---------- sections ---------- */
+section.block{position:relative;padding-block:56px}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--sky)}
+h2{font-weight:300;font-size:clamp(28px,4.4vw,44px);letter-spacing:-.02em;margin:6px 0 8px;line-height:1.1;text-wrap:balance}
+h2 b{font-weight:700}
+.lede{color:var(--muted);max-width:62ch;margin:0 0 24px}
+.glass{background:var(--glass);border:1px solid var(--edge);border-radius:20px;padding:20px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);min-width:0;box-shadow:0 30px 60px -40px rgba(0,0,0,.8)}
+.bench{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px}
+@media (max-width:860px){.bench{grid-template-columns:minmax(0,1fr)}}
+.presets{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chip{font-family:var(--mono);font-size:12.5px;border:1px solid var(--edge);background:transparent;color:var(--ink);border-radius:999px;padding:7px 13px;cursor:pointer;transition:background .2s}
+.chip:hover{background:var(--glass2)}
+.chip[aria-pressed="true"]{background:linear-gradient(180deg,#e9f2ff,#9fc0ff);color:#071233;border-color:transparent}
+.custom{display:flex;gap:8px;flex:1 1 220px;min-width:0}
+.custom input{flex:1;min-width:0;font-family:var(--mono);font-size:13px;padding:8px 12px;border:1px solid var(--edge);border-radius:10px;background:rgba(0,0,0,.25);color:var(--ink)}
+.custom .btn{padding:8px 14px}
+.stage{display:flex;align-items:flex-end;gap:8px;height:250px;margin-top:22px;padding-top:30px;position:relative}
+.stage::after{content:"";position:absolute;left:0;right:0;bottom:44px;height:1px;background:linear-gradient(90deg,transparent,var(--edge),transparent)}
+.cell{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;position:relative}
+.barbox{width:100%;display:flex;align-items:flex-end;height:178px}
+.bar{width:100%;border-radius:8px 8px 3px 3px;background:linear-gradient(180deg,var(--barB),var(--barA));transition:height .35s ease,background .25s,box-shadow .25s,transform .2s;transform-origin:bottom;cursor:pointer;border:1px solid rgba(170,200,255,.12)}
+.cell:hover .bar{transform:scaleY(1.03);filter:brightness(1.2)}
+.val{font-family:var(--mono);font-weight:600;font-size:14px;font-variant-numeric:tabular-nums}
+.idx{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.cell.sorted .bar{background:var(--sorted);border-color:rgba(95,224,180,.25)}
+.cell.sorted .val{color:var(--good)}
+.cell.cmp .bar{background:linear-gradient(180deg,#7fb0ff,var(--blue));box-shadow:0 0 22px rgba(79,140,255,.55)}
+.cell.min .bar{background:linear-gradient(180deg,#ffffff,var(--sky));box-shadow:0 0 30px rgba(159,212,255,.75)}
+.cell.self .bar{outline:2px dashed var(--sky);outline-offset:4px}
+.cell.fly .bar{transition:none}
+.tag{position:absolute;top:-28px;font-family:var(--mono);font-size:11px;font-weight:600;padding:2px 7px;border-radius:6px;white-space:nowrap;animation:pop .25s ease}
+.tag.t-min{background:var(--sky);color:#06122e}
+.tag.t-cmp{background:var(--blue);color:#fff}
+@keyframes pop{from{transform:translateY(6px) scale(.8);opacity:0}}
+.say{margin-top:16px;min-height:50px;font-size:16px}
+.say b{font-family:var(--mono);color:var(--sky)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;align-items:center}
+.speed{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin-left:auto}
+.speed input{accent-color:var(--blue)}
+.track{display:flex;gap:5px;margin-top:18px}
+.seg{flex:1;height:7px;border-radius:4px;background:rgba(170,195,255,.12);position:relative;overflow:hidden;cursor:pointer;border:0;padding:0}
+.seg i{position:absolute;inset:0;width:0;background:linear-gradient(90deg,var(--blue),var(--sky));transition:width .3s}
+.seg.full i{width:100%;background:var(--good)}
+.tracklabel{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:6px}
+.legend{display:flex;flex-wrap:wrap;gap:16px;font-size:13px;color:var(--muted);margin-top:14px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.hint{font-size:12.5px;color:var(--muted);margin:10px 0 0}
+.kbd{font-family:var(--mono);font-size:11px;border:1px solid var(--edge);border-bottom-width:2px;border-radius:4px;padding:0 5px}
+.counters{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.counter{border:1px solid var(--edge);border-radius:14px;padding:14px;background:rgba(0,0,0,.18);transition:border-color .3s,box-shadow .3s}
+.counter .k{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.counter .n{font-weight:200;font-size:44px;font-variant-numeric:tabular-nums;line-height:1.05}
+.counter .of{font-family:var(--mono);font-size:12.5px;color:var(--muted)}
+.counter .n.bump{animation:bump .35s ease}
+@keyframes bump{40%{transform:scale(1.15);color:var(--sky)}}
+.counter.done{border-color:var(--good);box-shadow:0 0 30px -6px rgba(95,224,180,.5)}
+.counter.done .n{color:var(--good)}
+.passline{font-family:var(--mono);font-size:12.5px;color:var(--sky);margin:14px 0 8px}
+.log{list-style:none;margin:0;padding:0;max-height:310px;overflow:auto;font-family:var(--mono);font-size:12.5px;font-variant-numeric:tabular-nums;border-top:1px solid var(--edge)}
+.log li{display:grid;grid-template-columns:28px 1fr;gap:6px;padding:6px 2px;border-bottom:1px solid rgba(170,195,255,.07);color:var(--muted)}
+.log li.now{color:var(--ink);font-weight:600}
+.log li.sw{color:var(--sky)}
+.evidence{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.evidence .glass{transition:transform .25s,border-color .25s}
+.evidence .glass:hover{transform:translateY(-4px);border-color:rgba(170,200,255,.3)}
+.ic{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:var(--glass2);border:1px solid var(--edge);margin-bottom:12px}
+.ic svg{width:18px;height:18px;stroke:var(--sky);fill:none;stroke-width:1.8}
+h3{font-weight:600;font-size:19px;margin:0 0 12px}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:8px;border-bottom:1px solid rgba(170,195,255,.09);white-space:nowrap}
+th{color:var(--muted);font-weight:400;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em}
+tbody tr{transition:background .15s}
+tbody tr:hover{background:rgba(159,212,255,.06)}
+td.hit{color:var(--good);font-weight:600}
+.formula{font-family:var(--mono);font-size:16px;margin:8px 0 0;color:var(--sky)}
+.note{color:var(--muted);font-size:14px;margin:12px 0 0}
+.reveal{transition:transform .8s cubic-bezier(.2,.8,.2,1)}
+.reveal.pending{transform:translateY(40px)}
+.credit{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:12px;padding-block:28px 40px;border-top:1px solid var(--edge);font-size:13px;color:var(--muted);margin-top:24px}
+.credit b{font-family:var(--sign);font-style:italic;font-weight:300;font-size:26px;letter-spacing:.04em;line-height:1;background:linear-gradient(90deg,#fff,var(--sky));-webkit-background-clip:text;background-clip:text;color:transparent}
+.credit .dot{width:4px;height:4px;border-radius:50%;background:var(--edge)}
+#confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:20}
+.tip{position:fixed;z-index:30;pointer-events:none;background:rgba(10,20,45,.92);border:1px solid var(--edge);color:var(--ink);font-family:var(--mono);font-size:12px;padding:5px 9px;border-radius:7px;transform:translate(-50%,-125%);white-space:nowrap;backdrop-filter:blur(8px)}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .intro{display:none}
+  .hero .arc,.hero .pill,.hero h1,.hero .sub,.hero .cta,.fcard,.tag,.counter .n.bump,.scrollcue i::after{animation:none}
+  .bar,.seg i,.reveal{transition:none}.reveal.pending{transform:none}}
+</style>
+</head>
+<body>
+
+<div class="intro" id="intro" aria-hidden="true"><div class="orb"></div><div class="introname">Box A · Selection Sort</div></div>
+<header class="hero gut">
+  <div class="rays" aria-hidden="true"></div>
+  <div class="arc" aria-hidden="true"></div>
+  <canvas id="heroBars" aria-hidden="true"></canvas>
+  <div class="inner">
+    <span class="pill"><span class="spark"></span>Team 6 · Box A · Algorithm Design &amp; Analysis</span>
+    <h1>Inside the black box<span class="grad">Selection Sort</span></h1>
+    <p class="sub">Each pass scans the whole unsorted part for the smallest value, then makes exactly one swap to put it in place, even when it is already there.</p>
+    <div class="cta">
+      <a class="btn lit" href="#trace">Start the trace</a>
+      <a class="btn" href="#evidence">See the evidence</a>
+    </div>
+    <div class="floaters">
+      <div class="fcard f1"><div class="k">Comparisons, any n</div><div class="v">n(n−1)/2</div></div>
+      <div class="fcard f2"><div class="k">Swaps, every row</div><div class="v">n − 1</div></div>
+      <div class="fcard f3"><div class="k">Growth</div><div class="v">Θ(n²)</div></div>
+    </div>
+  </div>
+  <a class="scrollcue" href="#trace" aria-label="Scroll to the trace"><i></i>scroll</a>
+</header>
+
+<main>
+  <section class="block gut" id="trace">
+    <div class="inner reveal">
+      <div class="eyebrow" id="traceLabel">Hand trace · row R3</div>
+      <h2>Watch it reach <b id="tC">21</b> comparisons and <b id="tS">6</b> swaps</h2>
+      <p class="lede">Pick a row from the table, roll random numbers, or type your own. For any n numbers, selection sort always makes n(n−1)/2 comparisons and n−1 swaps, whatever their order.</p>
+      <div class="bench">
+        <div class="glass" aria-label="Sorting stage">
+          <div class="presets">
+            <button class="chip" data-p="R3" aria-pressed="true">R3 median first</button>
+            <button class="chip" data-p="R1" aria-pressed="false">R1 sorted</button>
+            <button class="chip" data-p="R2" aria-pressed="false">R2 reversed</button>
+            <button class="chip" id="rand" aria-pressed="false">Random</button>
+            <form class="custom" id="customForm">
+              <input id="customInput" aria-label="Your own numbers" placeholder="Your numbers (2 to 16), e.g. 9 4 7 1">
+              <button class="btn" type="submit">Load</button>
+            </form>
+          </div>
+          <div class="stage" id="stage"></div>
+          <div class="say" id="say"></div>
+          <div class="controls">
+            <button class="btn" id="reset">Restart</button>
+            <button class="btn" id="prev">Back</button>
+            <button class="btn lit" id="play">Play</button>
+            <button class="btn" id="next">Next step</button>
+            <label class="speed">Speed <input type="range" id="speed" min="200" max="1500" step="100" value="800" aria-label="Speed"></label>
+          </div>
+          <div class="track" id="track"></div>
+          <div class="tracklabel"><span>Pass 1</span><span>tap a pass to jump</span><span id="lastPass">Pass 6</span></div>
+          <div class="legend">
+            <span><i style="background:var(--sky)"></i>smallest so far</span>
+            <span><i style="background:var(--blue)"></i>being compared</span>
+            <span><i style="background:var(--good)"></i>in final place</span>
+          </div>
+          <p class="hint">Keys: <span class="kbd">←</span> <span class="kbd">→</span> step, <span class="kbd">Space</span> play. Hover a bar to see its value and position.</p>
+        </div>
+        <aside class="glass" aria-label="Counts and log">
+          <div class="counters">
+            <div class="counter" id="cBox"><div class="k">Comparisons</div><div class="n" id="cN">0</div><div class="of" id="cOf">of 21</div></div>
+            <div class="counter" id="sBox"><div class="k">Swaps</div><div class="n" id="sN">0</div><div class="of" id="sOf">of 6</div></div>
+          </div>
+          <div class="passline" id="pass">Pass 1</div>
+          <ol class="log" id="log"></ol>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <section class="block gut" id="evidence">
+    <div class="inner reveal">
+      <div class="eyebrow">Proof from the table</div>
+      <h2>Why it is <b>selection sort</b></h2>
+      <p class="lede">The large rows show how the counts grow, and two rows rule out the sorts that look like it.</p>
+      <div class="evidence">
+        <div class="glass">
+          <div class="ic"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></div>
+          <h3>How the counts grow</h3>
+          <div class="tablewrap"><table>
+            <thead><tr><th>n</th><th>comparisons</th><th>n(n−1)/2</th><th>swaps</th><th>n−1</th></tr></thead>
+            <tbody>
+              <tr><td>64</td><td>2,016</td><td class="hit">2,016</td><td>63</td><td class="hit">63</td></tr>
+              <tr><td>128</td><td>8,128</td><td class="hit">8,128</td><td>127</td><td class="hit">127</td></tr>
+              <tr><td>256</td><td>32,640</td><td class="hit">32,640</td><td>255</td><td class="hit">255</td></tr>
+            </tbody>
+          </table></div>
+          <p class="note">Sorted, reversed and shuffled input all give these same counts. When n doubles, comparisons grow ×4 and swaps ×2.</p>
+          <div class="formula">C(n) = n(n−1)/2 → Θ(n²)</div>
+          <div class="formula">S(n) = n−1 → Θ(n)</div>
+        </div>
+        <div class="glass">
+          <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg></div>
+          <h3>Why not its look-alikes</h3>
+          <div class="tablewrap"><table>
+            <thead><tr><th>Look-alike</th><th>Row</th><th>Count</th><th>It gives</th><th>Box A</th></tr></thead>
+            <tbody>
+              <tr><td>Bubble sort</td><td>R2 reversed, 7</td><td>swaps</td><td>21</td><td class="hit">6</td></tr>
+              <tr><td>Bubble sort</td><td>R5 sorted, 64</td><td>swaps</td><td>0</td><td class="hit">63</td></tr>
+              <tr><td>Insertion sort</td><td>R5 sorted, 64</td><td>comparisons</td><td>63</td><td class="hit">2,016</td></tr>
+            </tbody>
+          </table></div>
+          <p class="note">The detail: Box A swaps even when the smallest value is already in place, swapping it with itself. Load R1 sorted above to see 6 swaps on a sorted row.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="gut">
+    <div class="inner credit">
+      <span>Developed by <b>Razan</b></span>
+      <span class="dot" aria-hidden="true"></span>
+      <span>Team 6 · Box A · Algorithm Design &amp; Analysis</span>
+      <span class="dot" aria-hidden="true"></span>
+      <span>© 2026</span>
+    </div>
+  </footer>
+</main>
+
+<script>
+const PRESETS={R3:[51,20,41,50,72,89,94],R1:[20,41,50,51,72,89,94],R2:[94,89,72,51,50,41,20]};
+let steps=[],k=0,timer=null;
+const $=id=>document.getElementById(id);
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function build(a){
+  a=a.slice();const n=a.length,out=[];let c=0,s=0;
+  for(let i=0;i<n-1;i++){
+    let m=i;
+    out.push({a:a.slice(),i,j:-1,m,c,s,type:'start',pass:i+1,text:i===0?`Start. Pass 1 takes <b>${a[0]}</b> as the smallest so far.`:`Pass ${i+1} starts at position ${i}, with <b>${a[i]}</b> as the smallest so far.`});
+    for(let j=i+1;j<n;j++){
+      c++;const prevMin=a[m],smaller=a[j]<a[m];
+      if(smaller)m=j;
+      out.push({a:a.slice(),i,j,m,c,s,type:'cmp',pass:i+1,cmpWith:prevMin,
+        text:`Compare <b>${a[j]}</b> : <b>${prevMin}</b>. ${smaller?`${a[j]} is smaller, so it becomes the smallest.`:`${prevMin} stays the smallest.`}`});
+    }
+    s++;const self=m===i,v1=a[i],v2=a[m];
+    [a[i],a[m]]=[a[m],a[i]];
+    out.push({a:a.slice(),i,j:-1,m:i,from:m,c,s,type:'swap',self,pass:i+1,
+      text:self?`Swap <b>${v1}</b> with itself. It is already in place, but the swap step still runs and counts.`:`Swap <b>${v1}</b> ↔ <b>${v2}</b>. Now <b>${v2}</b> is in its final place.`});
+  }
+  out.push({a:a.slice(),i:n,j:-1,m:-1,c,s,type:'done',pass:n-1,text:`Done. Output <b>${a.join(' ')}</b> with <b>${c}</b> comparisons and <b>${s}</b> swaps.`});
+  return out;
+}
+function logText(st){
+  if(st.type==='cmp')return `${st.a[st.j]} : ${st.cmpWith} → ${st.a[st.m]}`;
+  if(st.type==='swap')return st.self?`swap ${st.a[st.i]} with itself`:`swap → ${st.a.join(' ')}`;
+  if(st.type==='done')return `output ${st.a.join(' ')}`;
+  return '';
+}
+function bump(id){const e=$(id);e.classList.remove('bump');void e.offsetWidth;e.classList.add('bump');}
+function drawTrack(st){
+  const n=st.a.length,P=n-1;
+  if($('track').children.length!==P){
+    $('track').innerHTML=Array.from({length:P},(_,p)=>`<button class="seg" data-pass="${p+1}" aria-label="Jump to pass ${p+1}"><i></i></button>`).join('');
+    $('lastPass').textContent='Pass '+P;
+    [...$('track').children].forEach(b=>b.onclick=()=>{stop();const t=+b.dataset.pass;
+      const idx=steps.findIndex(s=>s.pass===t&&s.type==='start');k=idx<0?0:idx;render(false);});
+  }
+  [...$('track').children].forEach((seg,p)=>{
+    const pass=p+1,bar=seg.firstChild;
+    seg.classList.toggle('full',st.type==='done'||pass<st.pass||(pass===st.pass&&st.type==='swap'));
+    if(pass===st.pass&&(st.type==='cmp'||st.type==='start')){const len=n-pass,done=st.type==='cmp'?st.j-st.i:0;bar.style.width=(done/len*100)+'%';}
+    else bar.style.width='';
+  });
+}
+function render(forward){
+  const st=steps[k],n=st.a.length,max=Math.max(...st.a.map(Math.abs),1);
+  $('stage').innerHTML=st.a.map((v,x)=>{
+    let cls='cell',tag='';
+    const sortedPart=st.type==='done'||x<st.i||(st.type==='swap'&&x===st.i);
+    if(sortedPart)cls+=' sorted';
+    if(st.type!=='done'&&!sortedPart){
+      if(x===st.m){cls+=' min';tag='<span class="tag t-min">min</span>';}
+      if(x===st.j){cls+=' cmp';if(x!==st.m)tag='<span class="tag t-cmp">compare</span>';}
+    }
+    if(st.type==='swap'&&st.self&&x===st.i)cls+=' self';
+    const h=Math.max(10,Math.round(Math.abs(v)/max*100));
+    return `<div class="${cls}">${tag}<div class="barbox"><div class="bar" style="height:${h}%"></div></div><div class="val">${v}</div><div class="idx">${x}</div></div>`;
+  }).join('');
+  $('say').innerHTML=st.text;
+  const prevSt=steps[k-1];
+  if(forward&&st.type==='swap'&&!st.self&&!reduce){
+    const cells=$('stage').children,a=cells[st.i],b=cells[st.from];
+    if(a&&b){const dx=b.getBoundingClientRect().left-a.getBoundingClientRect().left;
+      const ba=a.querySelector('.bar'),bb=b.querySelector('.bar');
+      a.classList.add('fly');b.classList.add('fly');
+      ba.style.transform=`translate(${dx}px,-34px)`;bb.style.transform=`translate(${-dx}px,34px)`;
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{a.classList.remove('fly');b.classList.remove('fly');
+        ba.style.transition=bb.style.transition='transform .5s cubic-bezier(.3,1.4,.5,1)';
+        ba.style.transform=bb.style.transform='';}));}
+  }
+  if(forward&&prevSt){if(st.c!==prevSt.c)bump('cN');if(st.s!==prevSt.s)bump('sN');}
+  if(forward&&st.type==='done')burst();
+  drawTrack(st);
+  $('cN').textContent=st.c;$('sN').textContent=st.s;
+  $('cOf').textContent='of '+(n*(n-1)/2);$('sOf').textContent='of '+(n-1);
+  $('cBox').classList.toggle('done',st.type==='done');$('sBox').classList.toggle('done',st.type==='done');
+  $('pass').textContent=st.type==='done'?'Finished':`Pass ${st.pass} of ${n-1}`;
+  const items=[];
+  for(let x=0;x<=k;x++){const s2=steps[x];if(s2.type==='start')continue;
+    items.push(`<li class="${x===k?'now ':''}${s2.type==='swap'?'sw':''}"><span>${s2.type==='cmp'?s2.c:''}</span><span>${logText(s2)}</span></li>`);}
+  $('log').innerHTML=items.join('');
+  const lg=$('log');lg.scrollTop=lg.scrollHeight;
+  $('prev').disabled=k===0;$('next').disabled=k===steps.length-1;
+}
+function load(a,label){stop();steps=build(a);k=0;const n=a.length;
+  $('tC').textContent=n*(n-1)/2;$('tS').textContent=n-1;
+  $('traceLabel').textContent=`Hand trace · ${label||'your numbers'} · n = ${n}`;
+  $('track').innerHTML='';render(false);}
+function stop(){clearInterval(timer);timer=null;$('play').textContent='Play';}
+function play(){
+  if(timer){stop();return;}
+  if(k===steps.length-1)k=0;
+  $('play').textContent='Pause';
+  timer=setInterval(()=>{if(k<steps.length-1){k++;render(true);}else stop();},1700-+$('speed').value);
+}
+$('next').onclick=()=>{stop();if(k<steps.length-1){k++;render(true);}};
+$('prev').onclick=()=>{stop();if(k>0){k--;render(false);}};
+$('reset').onclick=()=>{stop();k=0;render(false);};
+$('play').onclick=play;
+$('speed').oninput=()=>{if(timer){stop();play();}};
+const LABELS={R3:'row R3',R1:'row R1',R2:'row R2'};
+function pressOnly(b){document.querySelectorAll('.chip').forEach(o=>o.setAttribute('aria-pressed',o===b?'true':'false'));}
+document.querySelectorAll('.chip[data-p]').forEach(b=>b.onclick=()=>{pressOnly(b);load(PRESETS[b.dataset.p],LABELS[b.dataset.p]);});
+$('rand').onclick=()=>{pressOnly($('rand'));const n=5+Math.floor(Math.random()*8);
+  const a=Array.from({length:n},()=>10+Math.floor(Math.random()*90));$('customInput').value=a.join(' ');load(a,'random numbers');};
+$('customForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  const nums=$('customInput').value.split(/[\s,]+/).filter(Boolean).map(Number).filter(Number.isFinite).slice(0,16);
+  if(nums.length<2){$('say').innerHTML='Type at least two numbers, separated by spaces.';return;}
+  pressOnly(null);
+  load(nums,'your numbers');
+});
+document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;
+  if(e.key==='ArrowRight')$('next').click();if(e.key==='ArrowLeft')$('prev').click();
+  if(e.key===' '&&e.target.tagName!=='BUTTON'&&e.target.tagName!=='A'){e.preventDefault();play();}});
+
+/* hover tooltip */
+const tip=document.createElement('div');tip.className='tip';tip.hidden=true;document.body.appendChild(tip);
+$('stage').addEventListener('pointermove',e=>{const c=e.target.closest('.cell');if(!c){tip.hidden=true;return;}
+  const x=[...$('stage').children].indexOf(c),st=steps[k];
+  const role=c.classList.contains('min')?'smallest so far':c.classList.contains('cmp')?'being compared':c.classList.contains('sorted')?'in final place':'waiting';
+  tip.textContent=`value ${st.a[x]} · position ${x} · ${role}`;tip.style.left=e.clientX+'px';tip.style.top=e.clientY+'px';tip.hidden=false;});
+$('stage').addEventListener('pointerleave',()=>tip.hidden=true);
+
+/* confetti */
+const cf=document.createElement('canvas');cf.id='confetti';document.body.appendChild(cf);
+function burst(){if(reduce)return;const ctx=cf.getContext('2d'),W=cf.width=innerWidth,H=cf.height=innerHeight;
+  const cols=['#ffffff','#9fd4ff','#4f8cff','#5fe0b4'];
+  const ps=Array.from({length:130},()=>({x:W/2,y:H*.45,vx:(Math.random()-.5)*14,vy:-Math.random()*13-4,r:Math.random()*6+3,c:cols[Math.random()*4|0],a:Math.random()*6}));
+  let t=0;(function f(){ctx.clearRect(0,0,W,H);ps.forEach(p=>{p.vy+=.35;p.x+=p.vx;p.y+=p.vy;p.a+=.2;
+    ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.a);ctx.fillStyle=p.c;ctx.fillRect(-p.r/2,-p.r/4,p.r,p.r/2);ctx.restore();});
+    if(++t<110)requestAnimationFrame(f);else ctx.clearRect(0,0,W,H);})();}
+
+/* ambient bars under the horizon, sorting themselves */
+(function hero(){const c=$('heroBars'),ctx=c.getContext('2d');let arr=[],i=0,j=1,m=0,W,H;const N=48;
+  function reset(){arr=Array.from({length:N},()=>Math.random()*.85+.1);i=0;j=1;m=0;}
+  function size(){W=c.width=c.offsetWidth*devicePixelRatio;H=c.height=c.offsetHeight*devicePixelRatio;}
+  size();reset();addEventListener('resize',()=>{size();draw();});
+  function draw(){const w=W/N;ctx.clearRect(0,0,W,H);
+    arr.forEach((v,x)=>{ctx.fillStyle=x<i?'#5fe0b4':x===m?'#ffffff':x===j?'#4f8cff':'#2f52a0';
+      ctx.fillRect(x*w+w*.18,H-v*H,w*.64,v*H);});}
+  function tick(){if(i>=N-1){draw();setTimeout(()=>{reset();tick();},1800);return;}
+    if(j<N){if(arr[j]<arr[m])m=j;j++;}else{[arr[i],arr[m]]=[arr[m],arr[i]];i++;m=i;j=i+1;}
+    draw();setTimeout(tick,40);}
+  if(reduce){arr.sort((a,b)=>a-b);i=N;draw();}else tick();})();
+
+/* sections glide up as they enter */
+if(!reduce&&'IntersectionObserver' in window){
+  const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.remove('pending');io.unobserve(e.target);}}),{threshold:.08});
+  document.querySelectorAll('.reveal').forEach(el=>{if(el.getBoundingClientRect().top>innerHeight){el.classList.add('pending');io.observe(el);}});
+}
+$('intro').addEventListener('click',e=>{e.currentTarget.style.display='none';});
+load(PRESETS.R3,'row R3');
+</script>
+
+</body>
+</html>
